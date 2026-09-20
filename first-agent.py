@@ -227,7 +227,7 @@ for i in range(5): # 设置最大循环次数
     # ★ 硬防重：重复调用直接强制收尾，不再依赖模型自觉
     call_signature = f"{tool_name}({kwargs})"
     if call_signature in called_tools:
-        print(f"\n⚠️ 检测到重复调用 {call_signature}，由代码强制结束任务。")
+        print(f"\n⚠️ 检测到重复调用 {call_signature}，由代码强制结束任务。用户可无需在意。")
         print(f"最终答案（基于已收集信息）: {last_observation}")
         print("="*40)
         break

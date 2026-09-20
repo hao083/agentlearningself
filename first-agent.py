@@ -16,13 +16,20 @@ Thought: [你的思考过程和下一步计划]
 Action: [你要执行的具体行动]
 Reflection: [对当前行动的反思和下一步计划]
 
+# 输出示例:
+Thought: 用户想知道北京天气，我需要先调用天气工具查询。
+Action: get_weather(city="北京")
+Reflection: 我已经获取了天气信息，下一步应该根据这个天气推荐景点。
+
 Action的格式必须是以下之一：
 1. 调用工具：function_name(arg_name="arg_value")
 2. 结束任务：Finish[最终答案]
 
 # 重要提示:
-- 每次只输出一对Thought-Action-Reflection，不能输出多对
+- 每次回复必须完整输出 Thought、Action、Reflection 三行，缺一不可，不能输出多组
 - Action必须在同一行，不要换行
+- 如果某个工具已经调用过且参数相同，禁止重复调用，应立即用 Action: Finish[最终答案] 结束
+- 判断信息是否足够的唯一标准：只要能回答用户的原始问题，就必须立即 Finish，不要追求更多信息
 - 当收集到足够信息可以回答用户问题时，必须使用 Action: Finish[最终答案] 格式结束
 
 请开始吧！
@@ -146,11 +153,16 @@ class OpenAICompatibleClient:
 import re
 
 # --- 1. 配置LLM客户端 ---
-# 请根据您使用的服务，将这里替换成对应的凭证和地址
-API_KEY = "c99838eaba26433aba8ea847438957d5.NjfOuuTq5CH0pkcC"
+# 凭证从环境变量或 .env 文件读取，避免硬编码泄露
+from dotenv import load_dotenv
+load_dotenv()  # 自动加载同目录下的 .env 文件
+
+API_KEY = os.environ.get("ZHIPU_API_KEY", "")
 BASE_URL = "https://open.bigmodel.cn/api/paas/v4/"
 MODEL_ID = "glm-4-flash"
-os.environ['TAVILY_API_KEY'] = "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"
+
+if not API_KEY:
+    raise RuntimeError("未配置 ZHIPU_API_KEY，请在 .env 文件或环境变量中设置。")
 
 llm = OpenAICompatibleClient(
     model=MODEL_ID,
@@ -164,6 +176,9 @@ prompt_history = [f"用户请求: {user_prompt}"]
 
 print(f"用户输入: {user_prompt}\n" + "="*40)
 
+called_tools = set()   # ★ 记录已调用过的 工具(参数) 组合，防止重复调用
+last_observation = ""  # ★ 记录最后一次成功的工具结果，供强制收尾时输出
+
 # --- 3. 运行主循环 ---
 for i in range(5): # 设置最大循环次数
     print(f"--- 循环 {i+1} ---\n")
@@ -174,7 +189,7 @@ for i in range(5): # 设置最大循环次数
     # 3.2. 调用LLM进行思考
     llm_output = llm.generate(full_prompt, system_prompt=AGENT_SYSTEM_PROMPT)
     # 模型可能会输出多余的Thought-Action，需要截断
-    match = re.search(r'(Thought:.*?Action:.*?(?:\n\s*Reflection:.*?)?)(?=\n\s*(?:Thought:|Action:|Reflection:|Observation:)|\Z)', llm_output, re.DOTALL)
+    match = re.search(r'(Thought:.*?Action:.*?\n\s*Reflection:.*?)(?=\n\s*(?:Thought:|Action:|Reflection:|Observation:)|\Z)', llm_output, re.DOTALL)
     if match:
         truncated = match.group(1).strip()
         if truncated != llm_output.strip():
@@ -182,7 +197,13 @@ for i in range(5): # 设置最大循环次数
             print("已截断多余的 Thought-Action-Reflection 对")
     print(f"模型输出:\n{llm_output}\n")
     prompt_history.append(llm_output)
-    
+
+    # ★ 新增：单独提取并高亮打印 Reflection
+    reflection_match = re.search(r"Reflection: (.*)", llm_output, re.DOTALL)
+    if reflection_match:
+        print(f"💭 Reflection: {reflection_match.group(1).strip()}")
+        print("="*40)
+
     # 3.3. 解析并执行行动
     action_match = re.search(r"Action: (.*)", llm_output, re.DOTALL)
     if not action_match:
@@ -202,10 +223,19 @@ for i in range(5): # 设置最大循环次数
     args_str = re.search(r"\((.*)\)", action_str).group(1)
     kwargs = dict(re.findall(r'(\w+)="([^"]*)"', args_str))
 
+    # ★ 硬防重：重复调用直接强制收尾，不再依赖模型自觉
+    call_signature = f"{tool_name}({kwargs})"
+    if call_signature in called_tools:
+        print(f"\n⚠️ 检测到重复调用 {call_signature}，由代码强制结束任务。")
+        print(f"最终答案（基于已收集信息）: {last_observation}")
+        print("="*40)
+        break
+    called_tools.add(call_signature)
     if tool_name in available_tools:
         observation = available_tools[tool_name](**kwargs)
     else:
         observation = f"错误：未定义的工具 '{tool_name}'"
+    last_observation = observation   # ★ 记录本次结果
 
     # 3.4. 记录观察结果
     observation_str = f"Observation: {observation}"

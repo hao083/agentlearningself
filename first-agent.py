@@ -10,17 +10,18 @@ AGENT_SYSTEM_PROMPT = """
 - `get_attraction(city: str, weather: str)`: 根据城市和天气搜索推荐的旅游景点。
 
 # 输出格式要求:
-你的每次回复必须严格遵循以下格式，包含一对Thought和Action：
+你的每次回复必须严格遵循以下格式，包含下面的三行内容，一行都不能少：
 
 Thought: [你的思考过程和下一步计划]
 Action: [你要执行的具体行动]
+Reflection: [对当前行动的反思和下一步计划]
 
 Action的格式必须是以下之一：
 1. 调用工具：function_name(arg_name="arg_value")
 2. 结束任务：Finish[最终答案]
 
 # 重要提示:
-- 每次只输出一对Thought-Action，不能输出多对
+- 每次只输出一对Thought-Action-Reflection，不能输出多对
 - Action必须在同一行，不要换行
 - 当收集到足够信息可以回答用户问题时，必须使用 Action: Finish[最终答案] 格式结束
 
@@ -173,12 +174,12 @@ for i in range(5): # 设置最大循环次数
     # 3.2. 调用LLM进行思考
     llm_output = llm.generate(full_prompt, system_prompt=AGENT_SYSTEM_PROMPT)
     # 模型可能会输出多余的Thought-Action，需要截断
-    match = re.search(r'(Thought:.*?Action:.*?)(?=\n\s*(?:Thought:|Action:|Observation:)|\Z)', llm_output, re.DOTALL)
+    match = re.search(r'(Thought:.*?Action:.*?(?:\n\s*Reflection:.*?)?)(?=\n\s*(?:Thought:|Action:|Reflection:|Observation:)|\Z)', llm_output, re.DOTALL)
     if match:
         truncated = match.group(1).strip()
         if truncated != llm_output.strip():
             llm_output = truncated
-            print("已截断多余的 Thought-Action 对")
+            print("已截断多余的 Thought-Action-Reflection 对")
     print(f"模型输出:\n{llm_output}\n")
     prompt_history.append(llm_output)
     

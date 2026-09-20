@@ -28,6 +28,7 @@ Action的格式必须是以下之一：
 # 重要提示:
 - 每次回复必须完整输出 Thought、Action、Reflection 三行，缺一不可，不能输出多组
 - Action必须在同一行，不要换行
+- 所有输出（Thought、Reflection 以及最终答案）必须使用中文，即使工具返回的是英文，也要翻译成中文后再输出
 - 如果某个工具已经调用过且参数相同，禁止重复调用，应立即用 Action: Finish[最终答案] 结束
 - 判断信息是否足够的唯一标准：只要能回答用户的原始问题，就必须立即 Finish，不要追求更多信息
 - 当收集到足够信息可以回答用户问题时，必须使用 Action: Finish[最终答案] 格式结束
@@ -86,8 +87,8 @@ def get_attraction(city: str, weather: str) -> str:
     # 2. 初始化Tavily客户端
     tavily = TavilyClient(api_key=api_key)
     
-    # 3. 构造一个精确的查询
-    query = f"'{city}' 在'{weather}'天气下最值得去的旅游景点推荐及理由"
+    # 3. 构造一个精确的查询（限定中文输出，避免返回英文结果）
+    query = f"'{city}' 在'{weather}'天气下最值得去的旅游景点推荐及理由，请用中文回答"
     
     try:
         # 4. 调用API，include_answer=True会返回一个综合性的回答

@@ -62,11 +62,14 @@ rules = {
         "How did your father make you feel?",
         "What has your father taught you?"
     ],
+
+    #采用第二种记忆，要删去通用匹配规则
     r'.*': [
-        "Please tell me more.",
-        "Let's change focus a bit... Tell me about your family.",
-        "Can you elaborate on that?"
+            "Please tell me more.",
+            "Let's change focus a bit... Tell me about your family.",
+            "Can you elaborate on that?"
     ]
+    
 }
 
 # 定义代词转换规则
@@ -104,13 +107,13 @@ def respond(user_input):
     # 如果没有匹配任何特定规则，使用最后的通配符规则
     return random.choice(rules[r'.*'])
 '''
-
+'''
 ##增加记忆功能
 #------------------方案一，尽量不重复回应--------------------
 last_pattern = None    #用于记录上一次命中的规则模式
 
 def respond(user_input):
-    global last_pattern  # 声明使用全局变量
+    global last_pattern  # 声明使用其修改全局变量
     items=list(rules.items())
 
     for pattern,responses in items:
@@ -143,6 +146,102 @@ def respond(user_input):
             return response
 
     #不匹配，最后兜底
+    return random.choice(rules[r'.*'])
+'''
+
+#增加记忆功能
+#-------------------方案二，对话历史＋话题stack--------------------
+#采用标外挂一个“记忆容器”,用来存放对话历史+话题stack
+#能够记住用户通过的话题，当触发兜底时回访，而不是干巴巴的敷衍
+
+class ElizaMemory:
+    '''
+    记忆容器：
+    history:存放完整对话记录
+    topics:提及过的话题（list当作stack去使用，采用后进先出）
+    last_pattern:上一轮命中的规则
+    该算法自带“限长”，从而防止无限增长，这是最早的上下文窗口
+    '''
+    #初始化
+    def __init__(self,max_turns=20,max_topics=10):
+        self.history=[]#对话历史
+        self.topics=[]#话题stack
+        self.last_pattern=None#上一轮命中的规则
+        self.max_turns=max_turns#对话历史最大长度
+        self.max_topics=max_topics#话题stack最大长度
+    
+    #增加一轮对话，一轮是指Eliza+user
+    def add_turn(self,user_text,response,matched_pattern):
+        '''记录一轮对话，用户机器隔一条'''
+        self.history.append(("user",user_text))#向对话记录数组中增加用户的话
+        self.history.append(("Eliza",response))
+        self.last_pattern = matched_pattern 
+        #限制长度
+        if len(self.history)>self.max_turns*2:#因为机器和任务各占一条，所以乘以2
+            self.history=self.history[-self.max_turns*2:]#代替最旧的对话记录
+
+    #增加最新的话题到话题ayy中，超出长度就去除最旧的话题
+    def remember_topic(self,keyword):
+        '''记住一个话题（去重+限长）'''
+        if (keyword) and (keyword not in self.topics):
+            self.topics.append(keyword)#not esist,and append keyword
+            #judge the length of self.topics ayy yes/no over the self.max_topics
+            if len(self.topics)>self.max_topics:#over the length
+                self.topics = self.topics[-self.max_topics:]#保留较新的self.amx_topics数量的话题，旧的丢弃
+
+    #话题出栈，弹出最新的话题
+    def pop_topic(self):
+        '''查看并且弹出'''
+        return self.topics.pop() if self.topics else None
+
+    def last_topic(self):
+        '''只查看，不弹出'''
+        return self.topics[-1] if self.topics else None
+
+#单用户场景
+em=ElizaMemory()
+'''
+memory=new ElizaMemory
+memory._init_()
+这是错误写法！！！m
+'''
+
+
+def respond(user_input):
+    '''
+    生成回应函数，相较于原版，增加了“话题记录”和“兜底回访”
+    '''
+    #按插入顺序进行遍历规则
+    for pattern,responses in rules.items():
+        match=re.search(pattern,user_input,re.IGNORECASE)
+        if (match):
+            captured=match.group(1) if match.groups() else''
+            swapped=swap_pronouns(captured)
+            #捕获的内容写入记忆中
+            if(captured):
+                em.remember_topic(captured)
+            #识别话题，写入话题
+            for kw in ["mother","father","basketball","school"]:
+                if kw in user_input.lower():
+                    em.remember_topic(kw)
+            #选取模板并拼接格式化
+            template = random.choice(responses)
+            try:
+                #读取记忆
+                if "{0}" in template and not captured and em.last_topic():
+                    response=template.format(em.last_topic())
+                else:
+                    response=template.format(swapped)
+            except (IndexError, KeyError):
+                response = template
+
+              # ---- ★ 记忆写入③：记录本轮对话 ----
+            em.add_turn(user_input, response, pattern)
+            return response
+
+    # ---- ★ 兜底时利用记忆：回访最近话题，而非直接敷衍 ----
+    if em.last_topic():
+        return f"Earlier you mentioned {em.last_topic()}. Tell me more about that."
     return random.choice(rules[r'.*'])
 
 

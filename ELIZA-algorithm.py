@@ -36,6 +36,18 @@ rules = {
         "How long have you been {0}?",
         "How do you feel about being {0}?"
     ],
+    #增加两条洗的规则
+    r'I feel (.*)': [
+        "Why do you feel {0}?",
+        "How long have you been feeling {0}?",
+        "What makes you feel {0}?"
+    ],
+    r'.* school .*':[
+        "Could you tell me more about your school?",
+        "What do you like about your school?",
+        "Are there any interesting places near your school?"
+    ],
+    
     r'.* mother .*': [
         "Tell me more about your mother.",
         "What was your relationship with your mother like?",

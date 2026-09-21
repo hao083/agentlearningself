@@ -123,6 +123,7 @@ available_tools = {
 #第四步 调用LLM，构建agent的思考和行动循环
 from openai import OpenAI
 
+
 class OpenAICompatibleClient:
     """
     一个用于调用任何兼容OpenAI接口的LLM服务的客户端。

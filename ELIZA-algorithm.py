@@ -85,6 +85,8 @@ def swap_pronouns(phrase):
     swapped_words = [pronoun_swap.get(word, word) for word in words]
     return " ".join(swapped_words)
 
+'''
+#无记忆功能的回应
 def respond(user_input):
     """
     根据规则库生成响应
@@ -101,6 +103,48 @@ def respond(user_input):
             return response
     # 如果没有匹配任何特定规则，使用最后的通配符规则
     return random.choice(rules[r'.*'])
+'''
+
+##增加记忆功能
+#------------------方案一，尽量不重复回应--------------------
+last_pattern = None    #用于记录上一次命中的规则模式
+
+def respond(user_input):
+    global last_pattern  # 声明使用全局变量
+    items=list(rules.items())
+
+    for pattern,responses in items:
+        match = re.search(pattern,user_input,re.IGNORECASE)
+        if match:
+            captured = match.group(1) if match.groups() else''
+            swapped = swap_pronouns(captured)
+
+            #检查是否和上次是同一条规则，如果是，那就更换
+            if pattern == last_pattern and len(responses)>1:#匹配到相同的规则
+                #过滤上一次使用的response，避免重复的情况出现
+                last_response=getattr(respond,"_last_response",None)
+                choices = [r for r in responses if r !=last_response]
+                template = random.choice(choices if choices else responses)
+            else:#不相等，则从匹配到的规则随机挑选
+                template = random.choice(responses)
+
+            #更新记忆
+            last_pattern=pattern
+
+            #格式化模板，也就是拼接操作
+            try:
+                response = template.format(swapped)
+            except (IndexError, KeyError):
+                #模板含有字面花括号等异常情况，返回原模版
+                response = template
+
+            #更新记忆，记录本轮输出
+            respond._last_response = response
+            return response
+
+    #不匹配，最后兜底
+    return random.choice(rules[r'.*'])
+
 
 # 主聊天循环
 if __name__ == '__main__':

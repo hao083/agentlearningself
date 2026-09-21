@@ -52,12 +52,12 @@ rules = {
         "What is your favorite basketball team?",
         "How did you get into basketball?"
     ],
-    r'.* mother .*': [
+    r'.*mother.*': [
         "Tell me more about your mother.",
         "What was your relationship with your mother like?",
         "How do you feel about your mother?"
     ],
-    r'.* father .*': [
+    r'father': [
         "Tell me more about your father.",
         "How did your father make you feel?",
         "What has your father taught you?"

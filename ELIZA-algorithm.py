@@ -47,7 +47,11 @@ rules = {
         "What do you like about your school?",
         "Are there any interesting places near your school?"
     ],
-    
+    r'.* basketball .*':[
+        "Do you like watching the NBA?",
+        "What is your favorite basketball team?",
+        "How did you get into basketball?"
+    ],
     r'.* mother .*': [
         "Tell me more about your mother.",
         "What was your relationship with your mother like?",

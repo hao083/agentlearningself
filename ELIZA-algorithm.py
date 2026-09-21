@@ -42,12 +42,12 @@ rules = {
         "How long have you been feeling {0}?",
         "What makes you feel {0}?"
     ],
-    r'.* school .*':[
+    r'.*school.*':[
         "Could you tell me more about your school?",
         "What do you like about your school?",
         "Are there any interesting places near your school?"
     ],
-    r'.* basketball .*':[
+    r'.*basketball.*':[
         "Do you like watching the NBA?",
         "What is your favorite basketball team?",
         "How did you get into basketball?"

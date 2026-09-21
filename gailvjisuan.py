@@ -20,16 +20,16 @@ bigram_cnt = collections.Counter(bigram)
 cnt_datawhale_agent = bigram_cnt[('datawhale','agent')]#计算datawhale agent连续出现的次数
 p_agent_givenby_datawhale = cnt_datawhale_agent / cnt_datawhale
 print(f"Second: P(agent_givenby_datawhale) = \
-      {cnt_datawhale_agent} / {cnt_datawhale} = \
-      {p_agent_givenby_datawhale:.3f}")
+{cnt_datawhale_agent} / {cnt_datawhale} = \
+{p_agent_givenby_datawhale:.3f}")
 
 #再计算P（learns|agent）
 cnt_agent_learns = bigram_cnt[('agent', 'learns')]
 cnt_agent = tokens.count('agent')
 p_learns_given_agent = cnt_agent_learns / cnt_agent
 print(f"Third: P(learns|agent) = \
-      {cnt_agent_learns}/{cnt_agent} = \
-        {p_learns_given_agent:.3f}")
+{cnt_agent_learns}/{cnt_agent} = \
+{p_learns_given_agent:.3f}")
 
 #最后将上述概率连乘可得最终的生成概率
 p_sentence = p_datawhale * p_agent_givenby_datawhale * p_learns_given_agent

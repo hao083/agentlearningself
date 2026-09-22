@@ -13,7 +13,7 @@ cnt_tokens=len(tokens)#计算总数
 cnt_datawhale = tokens.count("datawhale")
 p_datawhale = cnt_datawhale / cnt_tokens
 print(f"First: P(datawhale) = {cnt_datawhale} / {cnt_tokens} = {p_datawhale:.3f}")
-
+print("\n")
 #接着计算P（agent|datawhale）
 bigram = zip(tokens,tokens[1:])
 bigram_cnt = collections.Counter(bigram)
@@ -22,7 +22,7 @@ p_agent_givenby_datawhale = cnt_datawhale_agent / cnt_datawhale
 print(f"Second: P(agent_givenby_datawhale) = \
 {cnt_datawhale_agent} / {cnt_datawhale} = \
 {p_agent_givenby_datawhale:.3f}")
-
+print("\n")
 #再计算P（learns|agent）
 cnt_agent_learns = bigram_cnt[('agent', 'learns')]
 cnt_agent = tokens.count('agent')
@@ -30,7 +30,7 @@ p_learns_given_agent = cnt_agent_learns / cnt_agent
 print(f"Third: P(learns|agent) = \
 {cnt_agent_learns}/{cnt_agent} = \
 {p_learns_given_agent:.3f}")
-
+print("\n")
 #最后将上述概率连乘可得最终的生成概率
 p_sentence = p_datawhale * p_agent_givenby_datawhale * p_learns_given_agent
 print(f"At last: P('datawhale agent learns') ≈ {p_datawhale:.3f} *\

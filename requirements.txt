@@ -1,0 +1,36 @@
+# PyTorch 环境快照 — 2026-09-30
+# 本机（RTX 3070 Laptop / Win11）验证通过：torch.cuda.is_available() == True
+#
+# 重建方式（本机）：
+#   conda create -n pytorch python=3.12 -y
+#   D:\Anaconda\envs\pytorch\python.exe -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#
+# 重建方式（Linux GPU 服务器）：
+#   conda create -n pytorch python=3.12 -y
+#   conda activate pytorch
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#
+# 注意：先跑 pip list 看实际版本，本文件为参考清单。
+
+torch==2.5.1+cu121
+torchvision==0.20.1+cu121
+torchaudio==2.5.1+cu121
+
+# --- torch 依赖 ---
+filelock==3.32.3
+fsspec==2026.7.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+mpmath==1.3.0
+networkx==3.6.1
+sympy==1.13.1
+typing_extensions==4.16.0
+
+# --- torchvision 依赖 ---
+numpy==2.5.2
+pillow==12.3.0
+
+# --- 基础工具 ---
+packaging==26.3
+setuptools==83.0.0
+wheel==0.47.0

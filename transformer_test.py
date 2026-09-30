@@ -35,8 +35,55 @@ class PositionWiseFeedFrward(nn.Module):
     def forward(self,x):
         pass
 
-#------  encode编码器核心层 -------------
-class EncodeerLayer(nn.Module):
+#------  encoder编码器核心层 -------------
+class EncoderLayer(nn.Module):
     def __init__(self,d_model,num_heds,d_ff,dropout):
-        super(EncodeerLayer,self).__init__()
-        self.self_attn = MultiHeadAttention()
+        super(EncoderLayer,self).__init__()
+        self.self_attn = MultiHeadAttention()#多头注意力机制
+        self.feed_forward = PositionWiseFeedFrward()#前馈神经网络模块
+        self.noam1 = nn.LayerNorm(d_model)
+        self.noam2 = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self,x,mask):
+        #残差分析、残差连接与层归一化后续在进行补充实现
+        #1、多头注意力机制
+        attn_output = self.self_attn(x,x,x,mask)
+        x = self.norm1(x + self.dropout(attn_output))
+
+        #2、前馈神经网络FNN
+        ff_output = self.feed_forward(x)
+        x = self.norm2(x + self.dropout(ff_output))
+
+        return x
+
+#------  decoder解码器核心层  --------------
+class DecoderLayer(nn.Module):
+    def __init__(self,d_model,num_heads,d_ff,dropout):
+        super(DecoderLayer,self).__init__()
+        self.self_attn = MultiHeadAttention()#多头注意力机制
+        self.cross_attn = MultiHeadAttention()#交叉注意力机制
+        self.feed_forward = PositionWiseFeedFrward()#FNN
+        self.norm1 = nn.Module(d_model)
+        self.norm2 = nn.Module(d_model)
+        self.norm3 = nn.Module(d_model)
+        self.dropout = nn.Dropout(d_model)
+
+    def forward(self,x,encoder_output,src_mask,tgt_mask):
+        #1、掩码多头注意力机制，主要是解码器对自身的限制，防止抄答案
+        attn_output = self.self_attn(x,x,x,tgt_mask)
+        x = self.norm1(x + self.dropout(attn_output))
+
+        #2、交叉注意力机制，主要是借助编码器输出来学习得出解码器的输出
+        cross_attn_output = self.cross_attn(x,encoder_output,encoder_output,src_mask)
+        x = self.norm2(x + self.dropout(cross_attn_output))
+
+        #3、前馈神经网络学习，得出最终输出
+        ff_output = self.feed_forward(x)
+        x = self.norm3(x + self.dropout(ff_output))
+
+        return x
+
+
+
+

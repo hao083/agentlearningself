@@ -21,6 +21,7 @@ class PositionalEncoding(nn.Module):
     def forward(self,x):
         pass
 
+#注意力
 class MultiHeadAttention(nn.Module):
     '''
     多头注意力机制模块
@@ -39,19 +40,79 @@ class MultiHeadAttention(nn.Module):
         self.W_v = nn.Linear(d_model , d_model)
         self.W_o = nn.Linear(d_model , d_model)
 
+
+    #多注意力机制的单词注意力计算
     def scaled_dot_product_attention(self,Q,K,V,mask=None):
+        #1、注意力得分计算
+        attn_scores = torch.matmul(Q,K.transpose(-2,-1)) / math.sqrt(self.d_k)
+
+        #2、掩码应用
+        if mask is not None:
+            #将掩码中为0的位置设置成一个非常小的负数（110的9次方）
+            #权重softmax计算过后，权重接近于0，这样该位置的向量就不会影响当前分析的token
+            attn_scores = attn_scores.masked_fill(mask == 0,-1e9)
+
+        #3、softmax权重计算
+        attn_weight = torch.softmax(attn_scores,dim=-1)
+
+        #4、加权求和
+        output = torch.matmul(attn_weight,V)
+        return output
+
+    #多注意力拆分，分为多个头
+    def split_heads(self,x):
+        #要将x的格式从（batch_size,seq_length,d_model）
+        #变成（batch_size,num_heads,seq_length,d_k）
+        batch_size , seq_length , d_model = x.size()
+        return x.view(batch_size , seq_length , self.num_heads , self.d_k).transpose(1,2)
+
         
+    #注意力合并 多头合并
+    def conbine_heads(self,x):
+        #将上述的格式转换变回去
+         batch_size , self.num_heads , seq_length , d_k = x.size()
+         return x.transpose(1,2).contiguous().view(batch_size,seq_length,self.d_model)
 
-
+    #发送函数
     def forward(self,query,key,value,mask):
-        pass
+        #1、对QKV进行拆分和线性变换
+        Q = self.split_heads(self.W_q(Q))
+        K = self.split_heads(self.W_k(K))
+        V = self.split_heads(self.W_v(V))
 
+        #2、注意力单次计算
+        attn_output = self.scaled_dot_product_attention(Q,K,V,mask)
+
+        #3、将多头注意力进行合并
+        output = self.W_o(self.conbine_heads(attn_output))
+
+        return output
+
+#FFn前馈神经网络
 class PositionWiseFeedFrward(nn.Module):
     '''
     位置前馈网络模块
+    两层线性变化和一层激活函数
     '''
+
+    def __init__(self, d_model , d_ff , dropout=0.1):
+        super(PositionWiseFeedFrward,self).__init__()
+        self.linear1 = nn.Linear(d_model,d_ff)
+        self.dropout = nn.Dropout(dropout)
+        self.linear2 = nn.Linear(d_ff,d_model)
+        self.relu = nn.ReLU()
+
+
     def forward(self,x):
-        pass
+        #此时传入的x是Encoder的输出，所以x的格式是(batch_size,seq_length,self.d_model)
+        x = self.linear1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.linear2(x)
+        #变换后输出形式依旧是原格式
+        return x
+
+
 
 #------  encoder编码器核心层 -------------
 class EncoderLayer(nn.Module):

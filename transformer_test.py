@@ -17,9 +17,33 @@ import math
 class PositionalEncoding(nn.Module):
     '''
     位置编码模块
+    为输入序列的词嵌入向量添加位置信息，从而实现上下文不会乱顺序
     '''
-    def forward(self,x):
-        pass
+    def __init__(self,d_model: int ,dropout: float=0.1,max_len: int = 5000):
+        super().__init__()
+        self.droppout = nn.Dropout(p=dropout)
+
+        #创建一个足够长的位置编码矩阵
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0,d_model,2) * (-math.log(10000.0) / d_model))
+
+        # pe (positional encoding) 的⼤⼩为 (max_len, d_model)
+        pe = torch.zeros(max_len, d_model)
+        # 偶数维度使⽤ sin, 奇数维度使⽤ cos
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        # 将 pe 注册为 buffer，这样它就不会被视为模型参数，但会随模型移动（例如
+        # to(device)）
+        self.register_buffer('pe', pe.unsqueeze(0))
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x.size(1) 是当前输⼊的序列⻓度
+        # 将位置编码加到输⼊向量上
+        x = x + self.pe[:, :x.size(1)]
+        return self.dropout(x)
+                             
+
+
 
 #注意力
 class MultiHeadAttention(nn.Module):
@@ -130,7 +154,7 @@ class EncoderLayer(nn.Module):
         attn_output = self.self_attn(x,x,x,mask)
         x = self.norm1(x + self.dropout(attn_output))
 
-        #2、前馈神经网络FNN
+        #2、前馈神经网络FFN
         ff_output = self.feed_forward(x)
         x = self.norm2(x + self.dropout(ff_output))
 
